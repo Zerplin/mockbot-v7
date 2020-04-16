@@ -1,42 +1,42 @@
-const Discord = require('discord.js');
-const bot = new Discord.Client();
+//const keepAlive = require('./server');
+const Discord   = require('discord.js');
+const bot       = new Discord.Client();
+const fs        = require('fs');
 
-var mockList = [];
-var userList = [];
-var skip = 0;
-var cooldown =1;
-var timeout = 10;
-const prefix = "!";
 require('dotenv').config();
 
 const DBL = require("dblapi.js");
 const dbl = new DBL(process.env.apikey, bot);
 
-//talkedRecently = new Set();
-talkedRecently = [];
-
+var mockList = [];
+var userList = [];
+var talkedRecently = [];
 var guildCooldown = [];
 var guildList = [];
+
+var skip = 0;
+var cooldown =1;
+var timeout = 10;
+
+const prefix = "!";
 
 function kFormatter(num) {
   return Math.abs(num) > 999 ? Math.sign(num)*((Math.abs(num)/1000).toFixed(1)) + 'k' : Math.sign(num)*Math.abs(num)
 }
 
+//const lastMessages   = new Discord.Collection();
+const guildMessageList = new Discord.Collection();
+const lastMessageList  = new Discord.Collection();
+
 bot.on("ready", () => {
   console.log("Ready");
-  userList = bot.guilds.map(g => g.memberCount).reduce((a, b) => a + b)
+  
+  userList = bot.guilds.cache.map(g => g.memberCount).reduce((a, b) => a + b)
   userList = kFormatter(userList);
-  bot.user.setActivity('!cmd|mocking '+userList+" users", { type: 'LISTENING' });
+  bot.user.setActivity('cmd|mocking '+userList+" users", { type: 'LISTENING' });
 
-  /*
-  dbl.hasVoted("165937223554826241").then(voted => {
-    if (voted) console.log("Thank you for voting!")  
-    else
-    {
-      console.log("did you know you can vote on me today?")
-    }
-  });
-  */
+  console.log(userList)
+  console.log(bot.guilds.cache.size)
 })
 
 function mockingSpongebob(text) {
@@ -53,9 +53,18 @@ function mockingSpongebob(text) {
   return res;
 }
 
-
 bot.on('message', (message) => 
 {
+
+  if(!message.guild){
+
+    console.log("dms","|",message.author.tag,"|", message.content)
+
+    if(message.content.includes("help")){
+      message.channel.send("commands can be found here: https://discordbots.org/bot/605882759772241988 , and while youre in there ᵖˡˢ ᵛᵒᵗᵉ \nAdd me to your server here <http://bit.ly/MockInv>");
+    }
+
+  }
 
   if (message.content.startsWith(prefix)&&message.guild != null) 
   {
@@ -73,15 +82,15 @@ bot.on('message', (message) =>
       {
         message.channel.send("commands can be found here: https://discordbots.org/bot/605882759772241988 ᵖˡˢ ᵛᵒᵗᵉ \nAdd me to your server <http://bit.ly/MockInv>");
         
-        userList = bot.guilds.map(g => g.memberCount).reduce((a, b) => a + b)
+        userList = bot.guilds.cache.map(g => g.memberCount).reduce((a, b) => a + b)
         userList = kFormatter(userList);
         bot.user.setActivity('!cmd|mocking '+userList+" users", { type: 'LISTENING' });
       }
   
       if (message.content.toLowerCase().includes("getserver")&&message.author.id == "165937223554826241") 
       {
-        var serverList = bot.guilds.sort((a,b) => b.memberCount - a.memberCount).first(9999).map((g, index) => `${index + 1}. ${g.name}: ${g.memberCount}`).join('\n')
-        message.channel.send("i am in " + bot.guilds.size + " servers\n");
+        var serverList = bot.guilds.cache.sort((a,b) => b.memberCount - a.memberCount).first(9999).map((g, index) => `${index + 1}. ${g.name}: ${g.memberCount}`).join('\n')
+        message.channel.send("i am in " + bot.guilds.cache.size + " servers\n");
         message.channel.send(serverList, {split:true});
 
       }
@@ -101,7 +110,7 @@ bot.on('message', (message) =>
           console.log("to be removed " + message.mentions.users.first().id);
           console.log("removed " + mockList);
 
-          message.channel.send(mockingSpongebob("unmocking " + message.mentions.users.first()));
+          message.channel.send(mockingSpongebob("unmocking " + message.mentions.users.first().username));
 
           skip = 1;
         }
@@ -117,7 +126,7 @@ bot.on('message', (message) =>
           console.log("to be removed " + message.author.id);
           console.log("removed " + mockList);
 
-          message.channel.send(mockingSpongebob("unmocking " + message.author));
+          message.channel.send(mockingSpongebob("unmocking " + message.author.username));
         }
         return(null);
       }
@@ -156,7 +165,7 @@ bot.on('message', (message) =>
           }
           else
           {
-            message.channel.send("invalid input");
+            message.channel.send("invalid input, did you remember to add a number?");
             console.log("invalid input :"+answer);
           }
           
@@ -177,7 +186,7 @@ bot.on('message', (message) =>
       {
         var minutes = Math.floor(guildCooldown[message.channel.guild.id]/60);
         var seconds = guildCooldown[message.channel.guild.id] - minutes*60
-        message.author.send("Cooldown enabled, wait "+minutes+" minute(s) and "+seconds+ " second(s) before mocking again. - " + message.author)
+        message.author.send("Cooldown enabled, wait "+minutes+" minute(s) and "+seconds+ " second(s) before mocking again. - " + message.author.username)
         message.delete()
         .then(msg => console.log(`Deleted message from ${msg.author.username}`))
         .catch(console.error);
@@ -187,7 +196,6 @@ bot.on('message', (message) =>
       
       else 
       {
-
         if(message.mentions.users.first())
         {
           if (message.content.toLowerCase().includes("mock") && !mockList.includes(message.mentions.users.first().id)) 
@@ -205,7 +213,7 @@ bot.on('message', (message) =>
 
                     console.log("added " + mockList);
         
-                    message.channel.send(mockingSpongebob("mocking " + message.mentions.users.first()))
+                    message.channel.send(mockingSpongebob("mocking " + message.mentions.users.first().username))
         
                     skip = 1;
                   }
@@ -223,15 +231,28 @@ bot.on('message', (message) =>
             }
             else 
             { 
-              
-              try{
-                message.channel.send(mockingSpongebob(message.mentions.users.first().lastMessage.content));
-                
-              }catch(err)
+              //console.log("test mention", message.mentions.users)
+              if(message.mentions.users.first().lastMessageID === null)
               {
-                message.channel.send("Error log: no message cached from mentioned user. Is this message from before I was added? Pls contact creator or join support server for further help")
+                 console.log("lastMessage is null")
+                 try{
+                    message.channel.send(mockingSpongebob(guildMessageList.get(message.guild.id).get(message.mentions.users.first().id).content))
+                 }
+                 catch(err)
+                 {
+                    message.channel.send("Error log: no message cached from mentioned user. Is this message from before I was added? Pls contact creator or join support server for further help")      
+                 }
               }
-            
+              else
+              {
+                 console.log("lastMessage exist")
+                 try{
+                    message.channel.send(mockingSpongebob(message.mentions.users.first().lastMessage.content));
+                    
+                 }catch(err){
+                    message.channel.send("Error log: no message cached from mentioned user. Is this message from before I was added? Pls contact creator or join support server for further help")
+                 }
+              }
             }
           }
         }
@@ -247,11 +268,16 @@ bot.on('message', (message) =>
             return(null);
           }
           
-          message.channel.fetchMessages({ limit: 2 }).then(msg => 
+          message.channel.messages.fetch({ limit: 2 }).then(msg => 
           {
             console.log("last msg " + msg.last().content);
-
-            message.channel.send(mockingSpongebob(msg.last().content.toLowerCase()));
+            //console.log("length =",  msg.last().content.length, ", content =", msg.last().content)
+            if(msg.last().content.length != 0){
+              message.channel.send(mockingSpongebob(msg.last().content.toLowerCase()));
+            }
+            else{
+              message.channel.send("Can't mock message without text")
+            }
 
           });
         }
@@ -277,7 +303,12 @@ bot.on('message', (message) =>
   //------------------------------------------------------------------------------------------------------------
   if(mockList.includes(message.author.id) && skip == 0) 
   {
-    message.channel.send(mockingSpongebob(message.content.toLowerCase()));
+    if(message.content.length != 0){
+      message.channel.send(mockingSpongebob(message.content.toLowerCase()));
+    }
+    else{
+      message.channel.send("Can't mock message without text")
+    }
   }
 
   if (skip == 1) 
@@ -287,8 +318,8 @@ bot.on('message', (message) =>
 
 });
 
+//keepAlive();
 bot.login(process.env.token);
-
 console.log("check");
 
 //this is my spaghet, there are many like it, but this spaghet is mine 
