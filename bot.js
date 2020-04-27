@@ -65,6 +65,10 @@ bot.on('message', (message) =>
     }
 
   }
+  
+  if(message.guild){
+    guildMessageList.set(message.guild.id, lastMessageList.set(message.author.id, message))
+  }
 
   if (message.content.startsWith(prefix)&&message.guild != null) 
   {
