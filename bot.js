@@ -61,7 +61,7 @@ bot.on('message', (message) =>
     console.log("dms","|",message.author.tag,"|", message.content)
 
     if(message.content.includes("help")){
-      message.channel.send("commands can be found here: https://discordbots.org/bot/605882759772241988 , and while youre in there ᵖˡˢ ᵛᵒᵗᵉ \nAdd me to your server here <http://bit.ly/MockInv>");
+      message.channel.send("commands can be found here: https://discordbots.org/bot/605882759772241988 , and while youre in there ᵖˡˢ ᵛᵒᵗᵉ \nAdd me to your server here <https://bit.ly/3lfsx2x>");
     }
 
   }
